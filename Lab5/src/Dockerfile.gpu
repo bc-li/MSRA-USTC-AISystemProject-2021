@@ -1,0 +1,46 @@
+# What image do you want to start building on?
+FROM nvidia/cuda:10.1-cudnn7-devel
+
+# Make a folder in your image where your app's source code can live
+RUN mkdir -p /src/app
+
+# Tell your container where your app's source code will live
+WORKDIR /src/app
+
+# What source code do you what to copy, and where to put it?
+COPY main.py /src/app
+
+# Does your app have any dependencies that should be installed?
+# Changing Source to TUNA and Aliyun to fix invalid: BADSIG F60F4B3D7FA2AF80 cudatools <cudatools@nvidia.com>
+RUN echo "deb https://mirrors.aliyun.com/nvidia-cuda/ubuntu1804/x86_64/ ./" > /etc/apt/sources.list.d/cuda.list
+RUN echo "deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ trusty main restricted universe multiverse" >> /etc/apt/sources.list && \
+    echo "deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ trusty-security main restricted universe multiverse" >> /etc/apt/sources.list&& \
+    echo "deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ trusty-updates main restricted universe multiverse" >> /etc/apt/sources.list && \
+    echo "deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ trusty-proposed main restricted universe multiverse" >> /etc/apt/sources.list && \
+    echo "deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ trusty-backports main restricted universe multiverse" >> /etc/apt/sources.list && \
+    echo "deb-src http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ trusty main restricted universe multiverse" >> /etc/apt/sources.list&& \
+    echo "deb-src http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ trusty-security main restricted universe multiverse" >> /etc/apt/sources.list && \
+    echo "deb-src http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ trusty-updates main restricted universe multiverse" >> /etc/apt/sources.list && \
+    echo "deb-src http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ trusty-proposed main restricted universe multiverse" >> /etc/apt/sources.list && \
+    echo "deb-src http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ trusty-backports main restricted universe multiverse" >> /etc/apt/sources.list 
+RUN apt-get update && apt-get install wget -y
+RUN wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
+RUN bash miniconda.sh -b -p /opt/conda
+ENV PATH /opt/conda/bin:$PATH
+
+
+
+RUN conda config --add channels https://mirrors.bfsu.edu.cn/anaconda/pkgs/main
+RUN conda config --add channels https://mirrors.bfsu.edu.cn/anaconda/pkgs/r
+RUN conda config --add channels https://mirrors.bfsu.edu.cn/anaconda/pkgs/msys2
+RUN conda config --add channels https://mirrors.bfsu.edu.cn/anaconda/cloud/bioconda
+RUN conda config --add channels https://mirrors.bfsu.edu.cn/anaconda/cloud/msys2
+RUN conda config --add channels https://mirrors.bfsu.edu.cn/anaconda/cloud/conda-forge
+RUN conda config --add channels https://mirrors.bfsu.edu.cn/anaconda/cloud/pytorch
+RUN conda config --add channels https://mirrors.bfsu.edu.cn/anaconda/cloud/menpo
+RUN conda config --add channels https://mirrors.bfsu.edu.cn/anaconda/cloud/simpleitk
+RUN conda clean -i
+RUN conda config --set show_channel_urls yes
+RUN conda install pytorch torchvision cudatoolkit=10.1 pytorch
+# How do you start your app?
+CMD [ "python", "main.py" ]
