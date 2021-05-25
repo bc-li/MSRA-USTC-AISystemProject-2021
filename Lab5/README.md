@@ -1,3 +1,13 @@
+# Report For MSRA-USTC Innovation Project 2021: AI-System
+## Environment 
+### Hardware
+* Intel Core i7-9750H CPU with 6 Core, 12 Threads
+* NVIDIA GeForce GTX1650 with 4GB of GDDR5
+### Software
+* Operating System: Ubuntu 18.04
+* DL Arch: Pytorch
+* Python version: 3.8
+* CUDA version: 11.0
 ## Step 1. Install Docker
 run following command:
 ```bash
@@ -75,6 +85,51 @@ WORKDIR /src/app
 COPY main.py /src/app
 
 # Does your app have any dependencies that should be installed?
+# Changing Source to TUNA and Aliyun to fix invalid: BADSIG F60F4B3D7FA2AF80 cudatools <cudatools@nvidia.com>
+RUN echo "deb https://mirrors.aliyun.com/nvidia-cuda/ubuntu1804/x86_64/ ./" > /etc/apt/sources.list.d/cuda.list
+RUN echo "deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ trusty main restricted universe multiverse" >> /etc/apt/sources.list && \
+    echo "deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ trusty-security main restricted universe multiverse" >> /etc/apt/sources.list&& \
+    echo "deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ trusty-updates main restricted universe multiverse" >> /etc/apt/sources.list && \
+    echo "deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ trusty-proposed main restricted universe multiverse" >> /etc/apt/sources.list && \
+    echo "deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ trusty-backports main restricted universe multiverse" >> /etc/apt/sources.list && \
+    echo "deb-src http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ trusty main restricted universe multiverse" >> /etc/apt/sources.list&& \
+    echo "deb-src http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ trusty-security main restricted universe multiverse" >> /etc/apt/sources.list && \
+    echo "deb-src http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ trusty-updates main restricted universe multiverse" >> /etc/apt/sources.list && \
+    echo "deb-src http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ trusty-proposed main restricted universe multiverse" >> /etc/apt/sources.list && \
+    echo "deb-src http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ trusty-backports main restricted universe multiverse" >> /etc/apt/sources.list 
+RUN apt-get update && apt-get install wget -y
+RUN wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
+RUN bash miniconda.sh -b -p /opt/conda
+ENV PATH /opt/conda/bin:$PATH
+
+
+
+RUN conda config --add channels https://mirrors.bfsu.edu.cn/anaconda/pkgs/main
+RUN conda config --add channels https://mirrors.bfsu.edu.cn/anaconda/pkgs/r
+RUN conda config --add channels https://mirrors.bfsu.edu.cn/anaconda/pkgs/msys2
+RUN conda config --add channels https://mirrors.bfsu.edu.cn/anaconda/cloud/bioconda
+RUN conda config --add channels https://mirrors.bfsu.edu.cn/anaconda/cloud/msys2
+RUN conda config --add channels https://mirrors.bfsu.edu.cn/anaconda/cloud/conda-forge
+RUN conda config --add channels https://mirrors.bfsu.edu.cn/anaconda/cloud/pytorch
+RUN conda config --add channels https://mirrors.bfsu.edu.cn/anaconda/cloud/menpo
+RUN conda config --add channels https://mirrors.bfsu.edu.cn/anaconda/cloud/simpleitk
+RUN conda clean -i
+RUN conda config --set show_channel_urls yes
+RUN conda install pytorch torchvision cudatoolkit=10.1 pytorch
+# How do you start your app?
+CMD [ "python", "main.py" ]# What image do you want to start building on?
+FROM nvidia/cuda:10.1-cudnn7-devel
+
+# Make a folder in your image where your app's source code can live
+RUN mkdir -p /src/app
+
+# Tell your container where your app's source code will live
+WORKDIR /src/app
+
+# What source code do you what to copy, and where to put it?
+COPY main.py /src/app
+
+# Does your app have any dependencies that should be installed?
 # Changing Source to TUNA and Aliyun to fix invalid: BADSIG F60F4B3D7FA2AF80 cudatools <cudatools@nvidia.com>.
 RUN echo "deb https://mirrors.aliyun.com/nvidia-cuda/ubuntu1804/x86_64/ ./" > /etc/apt/sources.list.d/cuda.list
 RUN echo "deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ trusty main restricted universe multiverse" >> /etc/apt/sources.list && \
@@ -131,11 +186,82 @@ $ git checkout -b $BRANCH_NAME
 $ cd ..
 ```
 
-build CPU images for docker:
+build GPU images for docker:
 
 ```bash
-$ docker build --file Dockerfile.infer.cpu -t msra-bcli-torchserve:0.1-gpu .
+$ docker build --file Dockerfile.infer.gpu -t msra-bcli-torchserve:0.1-gpu .
 ```
+
+Dockerfile is shown below:
+
+```dockerfile
+FROM nvidia/cuda:10.1-cudnn7-runtime-ubuntu18.04
+
+ENV PYTHONUNBUFFERED TRUE
+RUN echo "deb https://mirrors.aliyun.com/nvidia-cuda/ubuntu1804/x86_64/ ./" > /etc/apt/sources.list.d/cuda.list
+
+RUN echo "deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ trusty main restricted universe multiverse" >> /etc/apt/sources.list && \
+    echo "deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ trusty-security main restricted universe multiverse" >> /etc/apt/sources.list&& \
+    echo "deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ trusty-updates main restricted universe multiverse" >> /etc/apt/sources.list && \
+    echo "deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ trusty-proposed main restricted universe multiverse" >> /etc/apt/sources.list && \
+    echo "deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ trusty-backports main restricted universe multiverse" >> /etc/apt/sources.list && \
+    echo "deb-src http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ trusty main restricted universe multiverse" >> /etc/apt/sources.list&& \
+    echo "deb-src http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ trusty-security main restricted universe multiverse" >> /etc/apt/sources.list && \
+    echo "deb-src http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ trusty-updates main restricted universe multiverse" >> /etc/apt/sources.list && \
+    echo "deb-src http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ trusty-proposed main restricted universe multiverse" >> /etc/apt/sources.list && \
+    echo "deb-src http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ trusty-backports main restricted universe multiverse" >> /etc/apt/sources.list 
+RUN sed -i 's/archive.ubuntu.com/mirrors.ustc.edu.cn/g' /etc/apt/sources.list
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y \
+    fakeroot \
+    ca-certificates \
+    dpkg-dev \
+    g++ \
+    python3-dev \
+    openjdk-8-jdk-headless \
+    curl \
+    vim \
+    && rm -rf /var/lib/apt/lists/* \
+    && cd /tmp
+RUN curl -O https://bootstrap.pypa.io/get-pip.py \
+    && python3 get-pip.py
+
+RUN update-alternatives --install /usr/bin/python python /usr/bin/python3 1
+RUN update-alternatives --install /usr/local/bin/pip pip /usr/local/bin/pip3 1
+RUN pip install -i https://pypi.tuna.tsinghua.edu.cn/simple pip -U
+RUN export USE_CUDA=1
+RUN pip install psutil future torch torchvision torchtext
+RUN pip install --no-cache-dir psutil
+RUN pip install --no-cache-dir captum
+
+
+# RUN pip --no-cache-dir install psutil future torch torchvision torchtext
+# RUN pip install --no-cache-dir psutil
+# RUN pip install --no-cache-dir captum
+
+ADD serve serve
+RUN pip install ../serve/
+
+RUN useradd -m model-server \
+    && mkdir -p /home/model-server/tmp
+
+COPY dockerd-entrypoint.sh /usr/local/bin/dockerd-entrypoint.sh
+
+RUN chmod +x /usr/local/bin/dockerd-entrypoint.sh \
+    && chown -R model-server /home/model-server
+
+COPY config.properties /home/model-server/config.properties
+RUN mkdir /home/model-server/model-store && chown -R model-server /home/model-server/model-store
+
+EXPOSE 8080 8081
+
+WORKDIR /home/model-server
+ENV TEMP=/home/model-server/tmp
+ENTRYPOINT ["/usr/local/bin/dockerd-entrypoint.sh"]
+CMD ["serve"]
+```
+
+
 
 the result is shown below:
 
