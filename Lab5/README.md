@@ -1,4 +1,5 @@
 # Report For MSRA-USTC Innovation Project 2021: AI-System
+Bocheng Li, 5/2021 GitHub [@ BC-Li](https://github.com/BC-Li)
 ## Environment 
 ### Hardware
 * Intel Core i7-9750H CPU with 6 Core, 12 Threads
