@@ -383,3 +383,103 @@ $ curl -X POST http://127.0.0.1:8080/predictions/densenet161 -T kitten.jpg
 the result will be like this:
 
 ![image-20210513233505402](/Lab5/images/success.png)
+
+# Pull Requests
+Below are my fixes to some errors encountered when doing the lab 5.
+
+I pulled them to the original repository after I finished my report.
+
+PRs can be seen at https://github.com/microsoft/AI-System/pull/27 and https://github.com/microsoft/AI-System/pull/28.
+
+## 1. Fix invalid: BADSIG F60F4B3D7FA2AF80 error in basic lab 5 #28
+
+## Environment
+* OS: Ubuntu 18.04
+* Python 3.6
+## Command
+`docker build -f Dockerfile.gpu -t train_dl .`
+## Error
+When the dockerfile.gpu runs the command `RUN conda install pytorch torchvision cudatoolkit=10.1 -c pytorch`to install `cudatookit`, because the CDN cached a newer signature Release.gpg but did NOT refresh Release's cache at the same time(see https://github.com/NVIDIA/nvidia-docker/issues/613), the installation will return an error like
+```bash
+W: GPG error: https://developer.download.nvidia.cn/compute/machine-learning/repos/ubuntu1804/x86_64  Release: The following signatures were invalid: BADSIG F60F4B3D7FA2AF80 cudatools <cudatools@nvidia.com>
+E: The repository 'https://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu1804/x86_64  Release' is not signed.
+```
+ (see also https://github.com/NVIDIA/nvidia-docker/issues/969)
+The installation may fail 1000 times unless adding a proxy. (but this error may happen somewhere else according to the comments)
+## Solution
+I tried to change the downloading source from Nvidia to Aliyun and TUNA, (like https://github.com/NVIDIA/nvidia-docker/issues/969#issuecomment-703186192) and removed the **adding pubkey** step on my second try(to reproduce) to build the image and it worked for me.
+```dockerfile
+RUN curl -fsSL https://mirrors.aliyun.com/nvidia-cuda/ubuntu1804/x86_64/7fa2af80.pub | apt-key add - // the command I removed
+```
+>  At the first time I added all the commands in https://github.com/NVIDIA/nvidia-docker/issues/969#issuecomment-703186192 and resolved the problem, but at the second time I removed the command **above** and it still works. However I didn't know whether it is because I already added before. So if the "removed" version cause some problems, please consider readding the command above.
+## 2. Fix subprocess.CalledProcessError when building TorchServe GPU image in basic lab 5 #27
+## Environment
+* OS: Ubuntu 18.04
+* CUDA 11.0
+* Python 3.6
+## Command
+`docker build --file Dockerfile.infer.gpu -t torchserve:0.1-gpu .`
+## Error log
+```bash
+  Building wheel for torchserve (setup.py): started
+  Building wheel for torchserve (setup.py): still running...
+  Building wheel for torchserve (setup.py): finished with status 'error'
+  ERROR: Command errored out with exit status 1:
+   command: /usr/bin/python3 -u -c 'import io, os, sys, setuptools, tokenize; sys.argv[0] = '"'"'/tmp/pip-req-build-8zsfe839/setup.py'"'"'; __file__='"'"'/tmp/pip-req-build-8zsfe839/setup.py'"'"';f = getattr(tokenize, '"'"'open'"'"', open)(__file__) if os.path.exists(__file__) else io.StringIO('"'"'from setuptools import setup; setup()'"'"');code = f.read().replace('"'"'\r\n'"'"', '"'"'\n'"'"');f.close();exec(compile(code, __file__, '"'"'exec'"'"'))' bdist_wheel -d /tmp/pip-wheel-gr9trt96
+
+```
+## Gradle output
+```bash
+FAILURE: Build failed with an exception.
+  
+  * What went wrong:
+  Execution failed for task ':server:compileJava'.
+  > Compilation failed; see the compiler error output for details.
+  
+  * Try:
+  Run with --stacktrace option to get the stack trace. Run with --info or --debug option to get more log output. Run with --scan to get full insights.
+  
+  * Get more help at https://help.gradle.org
+
+ BUILD FAILED in 1s
+    9 actionable tasks: 8 executed, 1 up-to-date
+    Traceback (most recent call last):
+      File "<string>", line 1, in <module>
+      File "/tmp/pip-req-build-8zsfe839/setup.py", line 164, in <module>
+        license='Apache License Version 2.0'
+      File "/usr/local/lib/python3.6/dist-packages/setuptools/__init__.py", line 153, in setup
+        return distutils.core.setup(**attrs)
+      File "/usr/lib/python3.6/distutils/core.py", line 148, in setup
+        dist.run_commands()
+      File "/usr/lib/python3.6/distutils/dist.py", line 955, in run_commands
+        self.run_command(cmd)
+      File "/usr/lib/python3.6/distutils/dist.py", line 974, in run_command
+        cmd_obj.run()
+      File "/usr/local/lib/python3.6/dist-packages/setuptools/command/install.py", line 61, in run
+        return orig.install.run(self)
+      File "/usr/lib/python3.6/distutils/command/install.py", line 589, in run
+        self.run_command('build')
+      File "/usr/lib/python3.6/distutils/cmd.py", line 313, in run_command
+        self.distribution.run_command(command)
+      File "/usr/lib/python3.6/distutils/dist.py", line 974, in run_command
+        cmd_obj.run()
+      File "/usr/lib/python3.6/distutils/command/build.py", line 135, in run
+        self.run_command(cmd_name)
+      File "/usr/lib/python3.6/distutils/cmd.py", line 313, in run_command
+        self.distribution.run_command(command)
+      File "/usr/lib/python3.6/distutils/dist.py", line 974, in run_command
+        cmd_obj.run()
+      File "/tmp/pip-req-build-8zsfe839/setup.py", line 103, in run
+        self.run_command('build_frontend')
+      File "/usr/lib/python3.6/distutils/cmd.py", line 313, in run_command
+        self.distribution.run_command(command)
+      File "/usr/lib/python3.6/distutils/dist.py", line 974, in run_command
+        cmd_obj.run()
+      File "/tmp/pip-req-build-8zsfe839/setup.py", line 90, in run
+        subprocess.check_call(build_frontend_command[platform.system()], shell=True)
+      File "/usr/lib/python3.6/subprocess.py", line 311, in check_call
+        raise CalledProcessError(retcode, cmd)
+    subprocess.CalledProcessError: Command 'frontend/gradlew -p frontend clean assemble' returned non-zero exit status 1.
+```
+## Solution
+I figured out the jdk didn't build the image properly. So I managed to change the jdk version in the dockerfile from **openjdk-8-jdk-headless** to **openjdk-11-jdk**, after that I retried, and it worked perfectly.
